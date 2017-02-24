@@ -141,21 +141,3 @@ python preprocessors/preprocess_movie_dialogs.py --raw_data movie_lines.txt \
 ```
 This preprocessed file can then be split up however you like to create training, validation, and testing sets.
 
-**Training:**
-```
-python correct_text.py --train_path /movie_dialog_train.txt \
-                       --val_path /movie_dialog_val.txt \
-                       --config DefaultMovieDialogConfig \
-                       --data_reader_type MovieDialogReader \
-                       --model_path /movie_dialog_model
-```
-
-**Testing:**
-```
-python correct_text.py --test_path /movie_dialog_test.txt \
-                       --config DefaultMovieDialogConfig \
-                       --data_reader_type MovieDialogReader \
-                       --model_path /movie_dialog_model \
-                       --decode
-```
-
