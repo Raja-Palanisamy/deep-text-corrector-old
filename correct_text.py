@@ -36,12 +36,14 @@ tf.app.flags.DEFINE_string("data_reader_type", "MovieDialogReader",
 tf.app.flags.DEFINE_string("train_path", "train", "Training data path.")
 tf.app.flags.DEFINE_string("val_path", "val", "Validation data path.")
 tf.app.flags.DEFINE_string("test_path", "test", "Testing data path.")
-tf.app.flags.DEFINE_string("model_path", "model", "Path where the model is "
-                                                  "saved.")
+tf.app.flags.DEFINE_string("output_path", ".output", "Path where the model and data are "
+                                                     "saved.")
+tf.app.flags.DEFINE_string("input_path", "/input", "Path where the model and data are "
+                                                   "to be read.")
 tf.app.flags.DEFINE_boolean("decode", False, "Whether we should decode data "
                                              "at test_path. The default is to "
                                              "train a model and save it at "
-                                             "model_path.")
+                                             "output_path/model.")
 tf.app.flags.DEFINE_integer("num_steps", 3000, "Number of steps to train.")
 tf.app.flags.DEFINE_boolean("decode_sentence", False, 
 			    "Whether we should decode sentences of the user.")
@@ -401,10 +403,10 @@ def evaluate_accuracy(sess, model, data_reader, corrective_tokens, test_path,
 
 
 def copy_train_data():
-    train_data_dir = os.path.join(FLAGS.model_path, 'data')
+    train_data_dir = os.path.join(FLAGS.output_path, 'data')
     if not os.path.exists(train_data_dir):
 	os.makedirs(train_data_dir)
-    shutil.copy(FLAGS.train_path, os.path.join(train_data_dir, 'model_dialog_train.txt'))
+    shutil.copy(FLAGS.train_path, os.path.join(train_data_dir, 'movie_dialog_train.txt'))
 
 
 def main(_):
@@ -419,6 +421,13 @@ def main(_):
         raise ValueError("config argument not recognized; must be one of: "
                          "TestConfig, DefaultPTBConfig, "
                          "DefaultMovieDialogConfig")
+    # Set the model path.
+    if not FLAGS.decode and not FLAGS.decode_sentence:
+    	model_path = os.path.join(FLAGS.output_path, "model") 
+    else:
+	model_path = os.path.join(FLAGS.input_path, "model")
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
     # Set the max_steps.
     config.max_steps = FLAGS.num_steps
     # Determine which kind of DataReader we want to use.
@@ -433,7 +442,7 @@ def main(_):
     if FLAGS.decode_sentence:
         # Correct user's sentences.
 	with tf.Session() as session:
-            model = create_model(session, True, FLAGS.model_path, config=config)
+            model = create_model(session, True, model_path, config=config)
             print("Enter a sentence you'd like to correct")
             correct_new_sentence = raw_input()
             while correct_new_sentence.lower() != 'no':
@@ -445,18 +454,17 @@ def main(_):
     elif FLAGS.decode:
         # Decode test sentences.
         with tf.Session() as session:
-            model = create_model(session, True, FLAGS.model_path, config=config)
+            model = create_model(session, True, model_path, config=config)
             print("Loaded model. Beginning decoding.")
             decodings = decode(session, model=model, data_reader=data_reader,
                                data_to_decode=data_reader.read_tokens(FLAGS.test_path),
 			       corrective_tokens=data_reader.read_tokens(FLAGS.train_path)) 
             # Write the decoded tokens to stdout.
             for tokens in decodings:
-                print(" ".join(tokens))
-                sys.stdout.flush()
+               sys.stdout.flush()
     else:
         print("Training model.")
-        train(data_reader, FLAGS.train_path, FLAGS.val_path, FLAGS.model_path)
+        train(data_reader, FLAGS.train_path, FLAGS.val_path, model_path)
 	copy_train_data()
 
 
